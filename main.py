@@ -102,6 +102,52 @@ async def command_weather(message: types.Message):
     await get_weather(api_key, city, chat_id)
 
 
+
+@dispatcher.message_handler(Command("balance"))
+async def command_balance(message: types.Message):
+    chat_id = message.chat.id
+    wallet = config.WALLET
+
+    balance_message = await get_balance_bitcoin(wallet)
+    await bot.send_message(chat_id, balance_message)
+
+
+async def get_balance_bitcoin(wallet):
+    # Формируем URL для получения информации о кошельке
+    wallet_api_url = f"https://blockchain.info/rawaddr/{wallet}"
+
+    # Формируем URL для получения текущей цены биткоина в долларах
+    price_api_url = "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd"
+
+    price_api_url_rub = 'https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=rub'
+    response = requests.get(price_api_url_rub)
+    price_rub_bitcoin = response.json()['bitcoin']['rub']
+    # Получаем информацию о кошельке с помощью запроса GET
+    wallet_response = requests.get(wallet_api_url)
+
+    # Получаем данные в формате JSON из ответа
+    wallet_data = wallet_response.json()
+
+    # Извлекаем финальный баланс из данных кошелька и конвертируем его в биткоины
+    balance = wallet_data["final_balance"] / 100000000
+
+    # Получаем текущую цену биткоина в долларах с помощью запроса GET
+    price_response = requests.get(price_api_url)
+
+    # Получаем данные в формате JSON из ответа
+    price_data = price_response.json()
+
+    # Извлекаем цену биткоина в долларах из данных и вычисляем эквивалент баланса в долларах
+    usd_price = price_data["bitcoin"]["usd"]
+    usd_balance = balance * usd_price
+    price_rub_bitcoin = balance * price_rub_bitcoin
+
+    # Формируем сообщение с информацией о балансе в BTC и USD
+    message = f"Баланс в BTC: {balance}\n"
+    message += f"Баланс в USD: {usd_balance}\n"
+    message += f"Баланс в RUB: {price_rub_bitcoin}"
+    return message
+
 def main():
     loop = asyncio.get_event_loop()
     loop.create_task(send_daily_weather())
