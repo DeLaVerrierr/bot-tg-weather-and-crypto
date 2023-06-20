@@ -90,7 +90,8 @@ async def command_start(message: types.Message):
     chat_id = message.chat.id
     user_chats.add(chat_id)
     await bot.send_message(chat_id, "Добро пожаловать! Получайте ежедневный прогноз погоды в 11:00 и информацию о курсе валют и биткоина. " \
-                                    "Для получения введите команду /forecast.")
+                                    "Для получения введите команду /forecast." \
+                                    "Для просмотра своего баланса bitcoin кошелька введите команду /balance")
 
 
 @dispatcher.message_handler(Command("forecast"))
@@ -103,13 +104,46 @@ async def command_weather(message: types.Message):
 
 
 
+# Словарь для хранения кошельков пользователей
+user_wallets = {}
+
+
 @dispatcher.message_handler(Command("balance"))
 async def command_balance(message: types.Message):
     chat_id = message.chat.id
-    wallet = config.WALLET
+
+    if chat_id in user_wallets:
+        wallet = user_wallets[chat_id]
+        balance_message = await get_balance_bitcoin(wallet)
+        await bot.send_message(chat_id, balance_message)
+    else:
+        await bot.send_message(chat_id, "Пожалуйста, введите ваш биткоин кошелек: (для удаление его /reset)")
+        # Регистрируем обработчик следующего сообщения от пользователя
+        dispatcher.register_message_handler(save_wallet_and_show_balance, content_types=types.ContentTypes.TEXT)
+
+@dispatcher.message_handler(Command("reset"))
+async def command_delete_wallet(message: types.Message):
+    chat_id = message.chat.id
+
+    if chat_id in user_wallets:
+        del user_wallets[chat_id]
+        await bot.send_message(chat_id, "Ваш биткоин кошелек удален.")
+    else:
+        await bot.send_message(chat_id, "У вас нет сохраненного биткоин кошелька.")
+
+
+
+async def save_wallet_and_show_balance(message: types.Message):
+    chat_id = message.chat.id
+    wallet = message.text
+
+    user_wallets[chat_id] = wallet
 
     balance_message = await get_balance_bitcoin(wallet)
     await bot.send_message(chat_id, balance_message)
+
+    # Удаляем обработчик следующего сообщения от пользователя
+    dispatcher.unregister_message_handler(save_wallet_and_show_balance)
 
 
 async def get_balance_bitcoin(wallet):
