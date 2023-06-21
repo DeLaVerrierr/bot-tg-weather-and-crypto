@@ -176,7 +176,6 @@ async def get_balance_bitcoin(wallet):
     usd_balance = balance * usd_price
     price_rub_bitcoin = balance * price_rub_bitcoin
 
-    # Формируем сообщение с информацией о балансе в BTC и USD
     message = f"Баланс в BTC: {balance}\n"
     message += f"Баланс в USD: {usd_balance}\n"
     message += f"Баланс в RUB: {price_rub_bitcoin}"
