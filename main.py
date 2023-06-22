@@ -9,7 +9,7 @@ from aiogram.dispatcher.filters import Command
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, ContentTypes
 from aiogram.utils import executor
 import config
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+
 
 logging.basicConfig(level=logging.INFO)
 
