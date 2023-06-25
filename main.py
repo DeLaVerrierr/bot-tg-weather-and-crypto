@@ -37,7 +37,7 @@ async def get_weather(api_key, city, chat_id):
             date_time = datetime.datetime.fromtimestamp(timestamp)
             time = date_time.strftime('%H:%M')
 
-            # Отправляем прогноз только на нужное время (21:00)
+            # Отправляем прогноз только на нужное времяяя (21:00)
             if time == '21:00':
                 temperature_kelvin = forecast['main']['temp']
                 temperature_celsius = temperature_kelvin - 273.15
