@@ -158,8 +158,6 @@ async def get_balance_bitcoin(wallet):
     price_rub_bitcoin = response.json()['bitcoin']['rub']
     # Получаем информацию о кошельке с помощью запроса GET
     wallet_response = requests.get(wallet_api_url)
-
-    # Получаем данные в формате JSON из ответа
     wallet_data = wallet_response.json()
 
     # Извлекаем финальный баланс из данных кошелька и конвертируем его в биткоины
