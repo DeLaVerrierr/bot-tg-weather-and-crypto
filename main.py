@@ -10,7 +10,6 @@ from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, ContentTypes
 from aiogram.utils import executor
 import config
 
-
 logging.basicConfig(level=logging.INFO)
 
 bot = Bot(token=config.TOKEN)
@@ -18,6 +17,7 @@ dispatcher = Dispatcher(bot)
 dispatcher.middleware.setup(LoggingMiddleware())
 
 user_chats = set()
+
 
 @dispatcher.pre_checkout_query_handler(lambda query: True)
 async def pre_checkout_query(pre_checkout_q: types.PreCheckoutQuery):
@@ -37,7 +37,7 @@ async def get_weather(api_key, city, chat_id):
             date_time = datetime.datetime.fromtimestamp(timestamp)
             time = date_time.strftime('%H:%M')
 
-            # Отправляем прогноз только на нужное времяяя (21:00)
+            # Отправляем прогноз только на нужное время (21:00)
             if time == '21:00':
                 temperature_kelvin = forecast['main']['temp']
                 temperature_celsius = temperature_kelvin - 273.15
@@ -89,9 +89,10 @@ async def send_daily_weather():
 async def command_start(message: types.Message):
     chat_id = message.chat.id
     user_chats.add(chat_id)
-    await bot.send_message(chat_id, "Добро пожаловать! Получайте ежедневный прогноз погоды в 11:00 и информацию о курсе валют и биткоина. " \
-                                    "Для получения введите команду /forecast." \
-                                    "Для просмотра своего баланса bitcoin кошелька введите команду /balance")
+    await bot.send_message(chat_id,
+                           "Добро пожаловать! Получайте ежедневный прогноз погоды в 11:00 и информацию о курсе валют и биткоина. " \
+                           "Для получения введите команду /forecast." \
+                           "Для просмотра своего баланса bitcoin кошелька введите команду /balance")
 
 
 @dispatcher.message_handler(Command("forecast"))
@@ -101,7 +102,6 @@ async def command_weather(message: types.Message):
     api_key = config.WEATHER_API
 
     await get_weather(api_key, city, chat_id)
-
 
 
 # Словарь для хранения кошельков пользователей
@@ -121,6 +121,7 @@ async def command_balance(message: types.Message):
         # Регистрируем обработчик следующего сообщения от пользователя
         dispatcher.register_message_handler(save_wallet_and_show_balance, content_types=types.ContentTypes.TEXT)
 
+
 @dispatcher.message_handler(Command("reset"))
 async def command_delete_wallet(message: types.Message):
     chat_id = message.chat.id
@@ -130,7 +131,6 @@ async def command_delete_wallet(message: types.Message):
         await bot.send_message(chat_id, "Ваш биткоин кошелек удален.")
     else:
         await bot.send_message(chat_id, "У вас нет сохраненного биткоин кошелька.")
-
 
 
 async def save_wallet_and_show_balance(message: types.Message):
@@ -158,6 +158,8 @@ async def get_balance_bitcoin(wallet):
     price_rub_bitcoin = response.json()['bitcoin']['rub']
     # Получаем информацию о кошельке с помощью запроса GET
     wallet_response = requests.get(wallet_api_url)
+
+    # Получаем данные в формате JSON из ответа
     wallet_data = wallet_response.json()
 
     # Извлекаем финальный баланс из данных кошелька и конвертируем его в биткоины
@@ -168,16 +170,21 @@ async def get_balance_bitcoin(wallet):
 
     # Получаем данные в формате JSON из ответа
     price_data = price_response.json()
-
+    # Получаем дату и время
+    now = datetime.datetime.now()
+    time_now = now.strftime("%d.%m.%Y")
     # Извлекаем цену биткоина в долларах из данных и вычисляем эквивалент баланса в долларах
     usd_price = price_data["bitcoin"]["usd"]
-    usd_balance = balance * usd_price
+    usd_balance = round(balance * usd_price, 2)
     price_rub_bitcoin = balance * price_rub_bitcoin
+    price_rub_bitcoin = round(price_rub_bitcoin, 2)
 
     message = f"Баланс в BTC: {balance}\n"
     message += f"Баланс в USD: {usd_balance}\n"
-    message += f"Баланс в RUB: {price_rub_bitcoin}"
+    message += f"Баланс в RUB: {price_rub_bitcoin}\n"
+    message += f"Дата: {time_now}"
     return message
+
 
 def main():
     loop = asyncio.get_event_loop()
@@ -187,5 +194,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
-
