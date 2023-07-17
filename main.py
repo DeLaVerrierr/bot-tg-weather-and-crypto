@@ -9,6 +9,10 @@ from aiogram.dispatcher.filters import Command
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, ContentTypes
 from aiogram.utils import executor
 import config
+import markups
+import database
+from aiogram.dispatcher.filters import Text
+
 
 logging.basicConfig(level=logging.INFO)
 
@@ -61,10 +65,10 @@ async def get_weather(api_key, city, chat_id):
                 message += f"Вечером температура: {temperature_celsius:.1f}°C\n"
                 message += f"Описание: {weather_description}\n\n"
                 message += f"Курс валют:\n"
-                message += f"Доллар (USD): {usd_rate} рублей\n"
-                message += f"Евро (EUR): {eur_rate} рублей\n\n"
-                message += f"Курс биткоина (BTC):\n"
-                message += f"{bitcoin_rate}$"
+                message += f"Доллар (USD): {usd_rate} р\n"
+                message += f"Евро (EUR): {eur_rate} р\n\n"
+                message += f"Курс биткоина BTC:\n"
+                message += f"{bitcoin_rate} $"
 
                 if chat_id is not None:
                     await bot.send_message(chat_id, message)
@@ -89,11 +93,40 @@ async def send_daily_weather():
 async def command_start(message: types.Message):
     chat_id = message.chat.id
     user_chats.add(chat_id)
+    referrer_id = message.get_args()  # Получаем идентификатор реферера из аргументов команды start
     await bot.send_message(chat_id,
                            "Добро пожаловать! Получайте ежедневный прогноз погоды в 11:00 и информацию о курсе валют и биткоина. " \
                            "Для получения введите команду /forecast." \
-                           "Для просмотра своего баланса bitcoin кошелька введите команду /balance")
+                           "Для просмотра своего баланса bitcoin кошелька введите команду /balance",
+                           reply_markup=markups.mainMenu)
+    if referrer_id is not None:
+        # Если указан идентификатор реферера, вызываем функцию сохранения реферала
+        database.save_referral(chat_id, int(referrer_id))
+        referral_count = database.get_referral_count(int(referrer_id))
+        await bot.send_message(int(referrer_id), f"Пользователь с ID {chat_id} присоединился по вашей реферальной ссылке.\nКоличество ваших рефералов: {referral_count}")
+    else:
+        # Если нет идентификатора реферера, вызываем функцию сохранения реферала с None в качестве реферера
+        database.save_referral(chat_id, None)
 
+
+@dispatcher.message_handler(Text(equals="Рефералка"))
+async def handle_referral(message: types.Message):
+    user_id = message.from_user.id
+    referrer_id = message.from_user.id  # Используем ID отправителя как идентификатор реферера
+
+    # Проверяем, что пользователь не использует свою собственную реферальную ссылку
+    if user_id == referrer_id:
+        referral_count = database.get_referral_count(user_id)
+        await bot.send_message(message.from_user.id, f'Ваша реферальная ссылка: https://t.me/{config.BOTNAME}?start={user_id}\nКол-во ваших рефералов: {referral_count}')
+        return
+
+    database.save_referral(user_id, referrer_id)
+
+    # Получаем количество рефералов для реферера
+    referral_count = database.get_referral_count(referrer_id)
+
+    # Отправляем сообщение пользователю с реферальной ссылкой и количеством рефералов
+    await bot.send_message(message.from_user.id, f'Ваша реферальная ссылка: https://t.me/{config.BOTNAME}?start={user_id}\nКол-во ваших рефералов: {referral_count}')
 
 @dispatcher.message_handler(Command("forecast"))
 async def command_weather(message: types.Message):
@@ -194,3 +227,10 @@ def main():
 
 if __name__ == '__main__':
     main()
+
+
+
+
+
+
+
